@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KGSS Variable Search — Static UI (React)</title>
+    <style>
+      :root {
+        --fg: #0f172a;
+        --muted: #64748b;
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --accent: #2563eb;
+        --year-on: #10b981;
+        --year-off: #e5e7eb;
+        --label-font-size: 0.7rem;
+        --border: #e5e7eb;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
+          Arial;
+        color: var(--fg);
+        background: var(--bg);
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+      }
+      input[type="text"],
+      select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: white;
+        box-sizing: border-box;
+        font-size: 0.9rem;
+        color: var(--fg);
+      }
+      label {
+        font-size: 0.92rem;
+        color: var(--muted);
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .controlsRow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: flex-end;
+      }
+      .controlBox {
+        flex: 1 1 260px;
+        min-width: 200px;
+      }
+      .controlSmall {
+        flex: 0 0 auto;
+        min-width: 120px;
+      }
+      .controlTiny {
+        flex: 0 0 auto;
+        min-width: 110px;
+        display: flex;
+        flex-direction: column;
+      }
+      button.ctrlBtn {
+        border: 1px solid var(--border);
+        background: white;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        color: var(--fg);
+        width: 100%;
+      }
+
+      .headerLine {
+        display: grid;
+        grid-template-columns: 200px 1fr auto;
+        column-gap: 16px;
+        align-items: center;
+        margin-top: 16px;
+        padding: 0 16px;
+      }
+      .headerLabel {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .count {
+        font-size: 0.85rem;
+        color: var(--muted);
+        text-align: right;
+      }
+      .muted {
+        color: var(--muted);
+      }
+
+      .results {
+        display: grid;
+        gap: 12px;
+        margin-top: 8px;
+      }
+      .resultBlock {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--card);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        padding: 16px;
+        display: grid;
+        gap: 8px;
+      }
+      .summaryRow {
+        display: grid;
+        grid-template-columns: 200px 1fr auto;
+        column-gap: 16px;
+        align-items: start;
+      }
+      .varName {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--fg);
+        word-break: break-all;
+      }
+      .labelCell {
+        font-size: 0.9rem;
+        color: var(--fg);
+        word-break: break-word;
+      }
+
+      .timelineWrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        min-width: 260px;
+        font-size: 0.75rem;
+      }
+      .timelineYears {
+        display: grid;
+        grid-template-columns: repeat(16, 1fr);
+        gap: 2px;
+        width: 260px;
+      }
+      .yearBlock {
+        position: relative;
+        height: 16px;
+        border-radius: 4px;
+        background: var(--year-off);
+        border: 1px solid #cbd5e1;
+        box-sizing: border-box;
+        cursor: default;
+      }
+      .yearBlock.on {
+        background: var(--year-on);
+        border-color: var(--year-on);
+      }
+
+      .yearTooltip {
+        position: absolute;
+        top: -28px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #0f172a;
+        color: #fff;
+        font-size: 0.7rem;
+        line-height: 1.2;
+        padding: 2px 6px;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.1s ease-in-out;
+        z-index: 10;
+      }
+      .yearTooltip::after {
+        content: "";
+        position: absolute;
+        bottom: -4px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 4px;
+        border-style: solid;
+        border-color: #0f172a transparent transparent transparent;
+      }
+      .yearBlock.on:hover .yearTooltip {
+        opacity: 1;
+      }
+
+      .timelineLabels {
+        display: grid;
+        grid-template-columns: repeat(16, 1fr);
+        gap: 2px;
+        width: 260px;
+        margin-top: 4px;
+        color: var(--muted);
+        text-align: center;
+        line-height: 1.1;
+        font-size: var(--label-font-size);
+      }
+      .timelineLabels div {
+        white-space: nowrap;
+      }
+
+      .toggleMore {
+        cursor: pointer;
+        font-size: 0.8rem;
+        color: var(--accent);
+        user-select: none;
+        display: inline-block;
+        margin-top: 4px;
+      }
+      .detailsRow {
+        font-size: 0.85rem;
+        background: #f9fafb;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px 16px;
+        line-height: 1.4;
+        margin-top: 4px;
+      }
+      .detailsTitle {
+        font-weight: 600;
+        color: var(--fg);
+        margin-bottom: 4px;
+        font-size: 0.85rem;
+      }
+      .itemsList {
+        margin: 4px 0 0 0;
+        padding-left: 16px;
+        color: var(--fg);
+      }
+      .itemsList li {
+        margin-bottom: 2px;
+      }
+      .moduleMeta {
+        margin-top: 12px;
+        font-size: 0.8rem;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+      .moduleTag {
+        display: inline-block;
+        background: #eef2ff;
+        border: 1px solid #c7d2fe;
+        border-radius: 8px;
+        padding: 2px 6px;
+        font-size: 0.7rem;
+        color: #4f46e5;
+        margin: 2px 4px 0 0;
+      }
+
+      .paginationBar {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        justify-content: center;
+        align-items: stretch;
+        margin-top: 16px;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .paginationTop {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .pageButtons {
+        display: flex;
+        gap: 8px;
+      }
+      .pageBtn {
+        border: 1px solid var(--border);
+        background: white;
+        border-radius: 10px;
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        color: var(--fg);
+      }
+      .pageBtn[disabled] {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .pageNumberBar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        justify-content: center;
+        align-items: center;
+      }
+      .pageNumberBtn {
+        border: 1px solid var(--border);
+        background: white;
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        color: var(--fg);
+        min-width: 32px;
+        text-align: center;
+      }
+      .pageNumberBtn.active {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+        font-weight: 600;
+      }
+
+      /* modal shared */
+      .modalBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+      .modalCard {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+        max-width: 360px;
+        width: 90%;
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+        font-size: 0.9rem;
+        color: var(--fg);
+      }
+      .modalHeader {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--fg);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+      .miniBtn {
+        border: 1px solid var(--border);
+        background: white;
+        border-radius: 10px;
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        color: var(--fg);
+      }
+      .applyBtn {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+
+      /* year modal specifics */
+      .yearGrid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        font-size: 0.8rem;
+      }
+      .yearCheck {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        color: var(--fg);
+      }
+      .modalBtns {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .leftBtns {
+        display: flex;
+        gap: 8px;
+      }
+      .rightBtns {
+        display: flex;
+        gap: 8px;
+      }
+
+      /* module modal specifics */
+      .moduleList {
+        display: grid;
+        grid-template-columns: 1fr;
+        row-gap: 4px;
+        font-size: 0.8rem;
+        max-height: 360px;
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+      .moduleRow {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+      }
+      .moduleSection {
+        margin-bottom: 8px;
+      }
+      .moduleSectionTitle {
+        font-weight: 600;
+        color: var(--fg);
+        margin-bottom: 6px;
+        font-size: 0.85rem;
+      }
+      .moduleDivider {
+        border-top: 1px solid #e5e7eb;
+        margin: 12px 0;
+        opacity: 0.5;
+      }
+      .submoduleRow {
+        padding-left: 16px;
+      }
+    </style>
+    <script
+      src="https://unpkg.com/react@18/umd/react.development.js"
+      crossorigin
+    ></script>
+    <script
+      src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"
+      crossorigin
+    ></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const YEAR_AXIS = [
+        2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014,
+        2016, 2018, 2021, 2023,
+      ];
+      const YEAR_LABEL_SET = new Set([2003, 2023]);
+
+      function normalize(s) {
+        return (s || "").toString().toLowerCase();
+      }
+      function escapeHtml(s) {
+        return (s || "")
+          .toString()
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      /* ---------- Timeline ---------- */
+      function Timeline({ years }) {
+        const setYears = new Set((years || []).map((y) => parseInt(y)));
+        return (
+          <div className="timelineWrapper">
+            <div className="timelineYears">
+              {YEAR_AXIS.map((y) => {
+                const active = setYears.has(y);
+                return (
+                  <div key={y} className={"yearBlock" + (active ? " on" : "")}>
+                    {active && <span className="yearTooltip">{y}</span>}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="timelineLabels">
+              {YEAR_AXIS.map((y) => (
+                <div key={y}>{YEAR_LABEL_SET.has(y) ? y : ""}</div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      /* ---------- Details (expanded row) ---------- */
+      function Details({ question, items, modules, submodules }) {
+        return (
+          <div className="detailsRow">
+            <div className="detailsSection">
+              <div className="detailsTitle">설문 문항</div>
+              <div
+                dangerouslySetInnerHTML={{ __html: escapeHtml(question || "") }}
+              />
+            </div>
+
+            <div className="detailsSection" style={{ marginTop: "12px" }}>
+              <div className="detailsTitle">응답 항목</div>
+              <ul className="itemsList">
+                {(items || []).map((opt, i) => (
+                  <li key={i}>{opt}</li>
+                ))}
+              </ul>
+            </div>
+
+            {modules || submodules ? (
+              <div className="moduleMeta">
+                {modules && (
+                  <div>
+                    <span style={{ fontWeight: 600, color: "var(--fg)" }}>
+                      모듈
+                    </span>
+                    : <span className="moduleTag">{modules}</span>
+                  </div>
+                )}
+                {submodules && (
+                  <div style={{ marginTop: "4px" }}>
+                    <span style={{ fontWeight: 600, color: "var(--fg)" }}>
+                      세부 모듈
+                    </span>
+                    : <span className="moduleTag">{submodules}</span>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        );
+      }
+
+      /* ---------- Single result row ---------- */
+      function ResultRow({ row }) {
+        const [open, setOpen] = React.useState(false);
+        return (
+          <div className="resultBlock">
+            <div className="summaryRow">
+              <div className="varName">{row.variable || ""}</div>
+              <div className="labelCell">{row.label || ""}</div>
+              <Timeline years={row.years} />
+            </div>
+            <div className="toggleMore" onClick={() => setOpen((o) => !o)}>
+              {open ? "▼ 접기" : "> 자세히 보기"}
+            </div>
+            {open && (
+              <Details
+                question={row.question}
+                items={row.items}
+                modules={row.modules}
+                submodules={row.submodules}
+              />
+            )}
+          </div>
+        );
+      }
+
+      /* ---------- Year filter modal ---------- */
+      function YearFilterModal({ allYears, selectedYears, onClose, onApply }) {
+        const [temp, setTemp] = React.useState(new Set(selectedYears));
+
+        function toggleYear(y) {
+          setTemp((prev) => {
+            const next = new Set(prev);
+            if (next.has(y)) next.delete(y);
+            else next.add(y);
+            return next;
+          });
+        }
+
+        function selectAll() {
+          setTemp(new Set(allYears));
+        }
+        function clearAll() {
+          setTemp(new Set());
+        }
+
+        return (
+          <div className="modalBackdrop" role="dialog" aria-modal="true">
+            <div className="modalCard">
+              <div className="modalHeader">
+                <div>연도별 검색</div>
+                <button className="miniBtn" onClick={onClose}>
+                  ✕
+                </button>
+              </div>
+              <div
+                className="muted"
+                style={{ fontSize: ".8rem", lineHeight: 1.4 }}
+              >
+                원하는 연도만 선택하면 그 모든 연도에 존재하는 변수만 남깁니다.
+                (AND 필터) 아무것도 선택 안 하면 전체.
+              </div>
+              <div className="yearGrid">
+                {allYears.map((y) => {
+                  const checked = temp.has(y);
+                  return (
+                    <label key={y} className="yearCheck">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleYear(y)}
+                      />
+                      <span>{y}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="modalBtns">
+                <div className="leftBtns">
+                  <button className="miniBtn" onClick={selectAll}>
+                    전체 선택
+                  </button>
+                  <button className="miniBtn" onClick={clearAll}>
+                    전체 해제
+                  </button>
+                </div>
+                <div className="rightBtns">
+                  <button className="miniBtn" onClick={onClose}>
+                    취소
+                  </button>
+                  <button
+                    className="miniBtn applyBtn"
+                    onClick={() => {
+                      onApply(Array.from(temp));
+                      onClose();
+                    }}
+                  >
+                    적용
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      /* ---------- Module filter modal ---------- */
+      function ModuleFilterModal({ onClose, onApply, currentSelection }) {
+        const [selected, setSelected] = React.useState(currentSelection || "");
+
+        const moduleStructure = {
+          ISSP: [
+            "National Identity (2003/2013/2023)",
+            "Citizenship (2004/2014/2023)",
+            "Work Orientation (2005)",
+            "Role of Government (2006/2016)",
+            "Leisure Time and Sports (2007)",
+            "Religion (2008/2018)",
+            "Social Inequality (2009)",
+            "Environment (2010/2020)",
+            "Health and Healthcare (2011)",
+            "Family and Changing Gender Roles (2012)",
+          ],
+          EASS: [
+            "Family (2006/2016)",
+            "Globalization & Culture (2008/2018)",
+            "Health (2010/2020)",
+            "Network Social Capital (2012/2023)",
+          ],
+          ESS: ["Personal and Social Well-being (2023)"],
+        };
+
+        return (
+          <div className="modalBackdrop" role="dialog" aria-modal="true">
+            <div className="modalCard" style={{ maxWidth: "480px" }}>
+              <div className="modalHeader">
+                <div>모듈별 검색</div>
+                <button className="miniBtn" onClick={onClose}>
+                  ✕
+                </button>
+              </div>
+              <div
+                className="muted"
+                style={{ fontSize: ".8rem", lineHeight: 1.4 }}
+              >
+                ISSP, EASS, ESS 같은 국제/테마 모듈 또는 세부 주제를 선택하여
+                필터합니다. 하나만 선택 가능합니다.
+              </div>
+
+              <div className="moduleList">
+                {/* 전체 문항 옵션 */}
+                <div className="moduleSection">
+                  <label className="moduleRow">
+                    <input
+                      type="radio"
+                      name="moduleFilter"
+                      checked={selected === ""}
+                      onChange={() => setSelected("")}
+                    />
+                    <span>전체 문항</span>
+                  </label>
+                </div>
+
+                <div className="moduleDivider"></div>
+
+                {/* 각 모듈별로 표시 */}
+                {Object.entries(moduleStructure).map(([module, submodules]) => (
+                  <div key={module} className="moduleSection">
+                    {/* 모듈 라디오 버튼 */}
+                    <label className="moduleRow">
+                      <input
+                        type="radio"
+                        name="moduleFilter"
+                        checked={selected === module}
+                        onChange={() => setSelected(module)}
+                      />
+                      <span style={{ fontWeight: 600 }}>{module}</span>
+                    </label>
+
+                    {/* 서브모듈들 */}
+                    {submodules.map((submodule) => (
+                      <label key={submodule} className="moduleRow submoduleRow">
+                        <input
+                          type="radio"
+                          name="moduleFilter"
+                          checked={selected === submodule}
+                          onChange={() => setSelected(submodule)}
+                        />
+                        <span>{submodule}</span>
+                      </label>
+                    ))}
+
+                    <div className="moduleDivider"></div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="modalBtns">
+                <div className="leftBtns">
+                  <button className="miniBtn" onClick={() => setSelected("")}>
+                    전체 선택
+                  </button>
+                </div>
+                <div className="rightBtns">
+                  <button className="miniBtn" onClick={onClose}>
+                    취소
+                  </button>
+                  <button
+                    className="miniBtn applyBtn"
+                    onClick={() => {
+                      onApply(selected);
+                      onClose();
+                    }}
+                  >
+                    적용
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      /* ---------- Pagination ---------- */
+      function Pagination({ page, totalPages, goPrev, goNext, goTo }) {
+        const groupIndex = Math.floor((page - 1) / 10);
+        const start = groupIndex * 10 + 1;
+        const end = Math.min(start + 9, totalPages);
+        const pagesToShow = [];
+        for (let p = start; p <= end; p++) pagesToShow.push(p);
+
+        return (
+          <div className="paginationBar">
+            <div className="paginationTop">
+              <div>
+                {page} / {totalPages} 페이지
+              </div>
+              <div className="pageButtons">
+                <button
+                  className="pageBtn"
+                  disabled={page <= 1}
+                  onClick={goPrev}
+                >
+                  이전
+                </button>
+                <button
+                  className="pageBtn"
+                  disabled={page >= totalPages}
+                  onClick={goNext}
+                >
+                  다음
+                </button>
+              </div>
+            </div>
+
+            <div className="pageNumberBar">
+              <button
+                className="pageNumberBtn"
+                disabled={start === 1}
+                onClick={() => {
+                  if (start > 1) goTo(start - 1);
+                }}
+              >
+                &lt;
+              </button>
+
+              {pagesToShow.map((p) => (
+                <button
+                  key={p}
+                  className={"pageNumberBtn" + (p === page ? " active" : "")}
+                  onClick={() => goTo(p)}
+                >
+                  {p}
+                </button>
+              ))}
+
+              <button
+                className="pageNumberBtn"
+                disabled={end === totalPages}
+                onClick={() => {
+                  if (end < totalPages) goTo(end + 1);
+                }}
+              >
+                &gt;
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      /* ---------- App ---------- */
+      function App() {
+        const [data, setData] = React.useState([]);
+
+        const [search, setSearch] = React.useState("");
+        const [pageSize, setPageSize] = React.useState(10);
+        const [page, setPage] = React.useState(1);
+
+        const [yearModalOpen, setYearModalOpen] = React.useState(false);
+        const [yearFilter, setYearFilter] = React.useState([]); // number[] AND
+
+        const [moduleModalOpen, setModuleModalOpen] = React.useState(false);
+        const [moduleFilter, setModuleFilter] = React.useState(""); // single string: module or submodule
+
+        // fetch JSON once
+        React.useEffect(() => {
+          fetch("data/kgss_variable_information.json")
+            .then((res) => res.json())
+            .then((json) => {
+              setData(json || []);
+            })
+            .catch((err) => {
+              console.error(err);
+              setData([]);
+            });
+        }, []);
+
+        // filtering pipeline
+        const filtered = React.useMemo(() => {
+          const qNorm = normalize(search);
+
+          const result = data.filter((row) => {
+            // text filter
+            const hay = [row.variable, row.label, row.question]
+              .map(normalize)
+              .join(" ");
+            if (qNorm !== "" && !hay.includes(qNorm)) return false;
+
+            // year AND filter
+            if (yearFilter.length > 0) {
+              const rowYears = new Set(
+                (row.years || []).map((y) => parseInt(y))
+              );
+              for (const y of yearFilter) {
+                if (!rowYears.has(y)) return false;
+              }
+            }
+
+            // module filter: single selection (module or submodule)
+            if (moduleFilter !== "") {
+              const rowModule = row.modules || "";
+              const rowSubmodule = row.submodules || "";
+
+              // Check if selected filter matches either module or submodule
+              if (rowModule !== moduleFilter && rowSubmodule !== moduleFilter) {
+                return false;
+              }
+            }
+
+            return true;
+          });
+
+          return result;
+        }, [data, search, yearFilter, moduleFilter]);
+
+        const total = filtered.length;
+        const totalPages = total === 0 ? 1 : Math.ceil(total / pageSize);
+
+        // reset page when filters/controls change
+        React.useEffect(() => {
+          setPage(1);
+        }, [search, pageSize, yearFilter, moduleFilter]);
+
+        const safePage = Math.min(Math.max(page, 1), totalPages);
+        const startIdx = (safePage - 1) * pageSize;
+        const pageItems = filtered.slice(startIdx, startIdx + pageSize);
+
+        return (
+          <div className="container">
+            <h1>KGSS 변수 검색</h1>
+            <p className="muted">
+              변수명, 항목, 설문 문항, 사용 연도, 모듈(예: ISSP / EASS / ESS
+              등)을 기준으로 검색할 수 있습니다.
+            </p>
+
+            <div className="card" style={{ marginBottom: "16px" }}>
+              <div className="controlsRow">
+                {/* 검색어 */}
+                <div className="controlBox">
+                  <label htmlFor="q">검색어</label>
+                  <input
+                    id="q"
+                    type="text"
+                    placeholder="변수명, 항목, 설문 문항 등을 검색할 수 있습니다."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+
+                {/* 페이지 크기 */}
+                <div className="controlSmall">
+                  <label htmlFor="pageSize">한 페이지 결과 수</label>
+                  <select
+                    id="pageSize"
+                    value={pageSize}
+                    onChange={(e) => setPageSize(parseInt(e.target.value, 10))}
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+
+                {/* 연도별 검색 버튼 */}
+                <div className="controlTiny">
+                  <button
+                    className="ctrlBtn"
+                    onClick={() => setYearModalOpen(true)}
+                  >
+                    연도별 검색
+                  </button>
+                </div>
+
+                {/* 모듈별 검색 버튼 */}
+                <div className="controlTiny">
+                  <button
+                    className="ctrlBtn"
+                    onClick={() => setModuleModalOpen(true)}
+                  >
+                    모듈별 검색
+                  </button>
+                </div>
+              </div>
+
+              {(yearFilter.length > 0 || moduleFilter !== "") && (
+                <div
+                  className="muted"
+                  style={{
+                    fontSize: ".8rem",
+                    marginTop: "8px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {yearFilter.length > 0 && (
+                    <div>
+                      연도(AND):{" "}
+                      {yearFilter
+                        .slice()
+                        .sort((a, b) => a - b)
+                        .join(", ")}
+                    </div>
+                  )}
+                  {moduleFilter !== "" && <div>모듈: {moduleFilter}</div>}
+                </div>
+              )}
+            </div>
+
+            <div className="headerLine">
+              <div className="headerLabel">
+                <strong>변수명</strong>
+              </div>
+              <div className="headerLabel">
+                <strong>항목</strong>
+              </div>
+              <div className="count">{total}개 결과</div>
+            </div>
+
+            <div className="results">
+              {pageItems.map((row, i) => (
+                <ResultRow key={startIdx + i} row={row} />
+              ))}
+            </div>
+
+            <Pagination
+              page={safePage}
+              totalPages={totalPages}
+              goPrev={() => setPage((p) => Math.max(p - 1, 1))}
+              goNext={() => setPage((p) => Math.min(p + 1, totalPages))}
+              goTo={(p) => setPage(p)}
+            />
+
+            <div className="footer" style={{ marginTop: "24px" }}>
+              <div
+                className="muted"
+                style={{ fontSize: ".85rem", lineHeight: 1.6 }}
+              >
+                <div style={{ marginBottom: "8px" }}>
+                  <strong>출처:</strong> 김지범, 강정한, 김석호, 김창환, 박원호,
+                  이윤석, 최슬기, 김솔이. (2024). 한국종합사회조사2003-2023.
+                  서울: 성균관대학교 출판부.
+                </div>
+              </div>
+            </div>
+
+            {yearModalOpen && (
+              <YearFilterModal
+                allYears={YEAR_AXIS}
+                selectedYears={yearFilter}
+                onClose={() => setYearModalOpen(false)}
+                onApply={(years) =>
+                  setYearFilter(years.map((y) => parseInt(y, 10)))
+                }
+              />
+            )}
+
+            {moduleModalOpen && (
+              <ModuleFilterModal
+                currentSelection={moduleFilter}
+                onClose={() => setModuleModalOpen(false)}
+                onApply={(selection) => setModuleFilter(selection)}
+              />
+            )}
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
